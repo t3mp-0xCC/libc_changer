@@ -16,3 +16,7 @@ e.g.
 `libc_changer <elf-file> [ubuntu-version] --local <libc-file>`  
 e.g.  
 `libc_changer ./chall 18.04 --local ./libc-2.27.so`   
+### Patch 32bit glibc  
+Add `-m32` option to args  
+e.g.  
+`libc_changer ./chall_32 18.04 2.27 -m32`  

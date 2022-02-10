@@ -38,7 +38,8 @@ function info {
 }
 
 function argc_check {
-  if [ "${#args[@]}" -ge $1 ]; then 
+  echo ${#args[*]}
+  if [ "${#args[*]}" -lt $1 ]; then 
   error "missing arguments"
   fi
 }
@@ -157,11 +158,11 @@ ARG3="${args[2]}"
 #### main part ####
 if [ "$M32" = 1 ]; then
   # patch 32bit libc
-  argc_check 4
+  argc_check 3
   patch_32
 elif [ "$LOCAL" = 1 ]; then
   # patch local libc
-  argc_check 4
+  argc_check 2
   patch_local
 else
   # normal patch(64bit)

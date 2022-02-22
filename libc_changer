@@ -69,7 +69,7 @@ function get_libc_release_version {
 
 function check_libc_bit_version {
   # check libc is 32bit or not
-  if [ -n $(file $1 | grep "32-bit") ]; then
+  if [ -n "$(file $1 | grep "32-bit")" ]; then
     M32=1
   else
     M32=
@@ -122,12 +122,16 @@ function patch_local {
     DEBUG_PATH="/usr/lib/debug/lib/x86_64-linux-gnu"
   fi
   sudo docker pull ubuntu:$ARG2
-  sudo docker run --name tmp$ARG2 -i -t ubuntu:$ARG2 bash -c "apt update && apt -y --allow-downgrades install libc6=$GLIBC_VERSION libc-dev-bin=$GLIBC_VERSION libc6-dev=$GLIBC_VERSION"
+  if [ "$M32" = 1 ]; then
+    sudo docker run --name tmp$ARG2 -i -t ubuntu:$ARG2 bash -c "apt update && apt -y --allow-downgrades install libc6-i386=$GLIBC_VERSION libc6-dbg-i386-cross='$GLIBC_VERSION'cross1"
+  else
+    sudo docker run --name tmp$ARG2 -i -t ubuntu:$ARG2 bash -c "apt update && apt -y --allow-downgrades install libc6=$GLIBC_VERSION libc-dev-bin=$GLIBC_VERSION libc6-dev=$GLIBC_VERSION"
+  fi
   cp $LOCAL_LIBC "`pwd`/libc.so.6"
-  sudo docker cp tmp$ARG2:/lib/x86_64-linux-gnu/ld-$GLIBC_RELEASE_VERSION.so .
+  sudo docker cp tmp$ARG2:$LIB_PATH/ld-$GLIBC_RELEASE_VERSION.so .
   mkdir -p ".debug"
 #  sudo docker cp tmp$ARG2:/usr/lib/debug/lib/x86_64-linux-gnu/libc-$GLIBC_RELEASE_VERSION.so ".debug/libc.so.6"
-  mkdir -p .debug/lib/x86_64-linux-gnu/
+  mkdir -p .debug/$LIB_PATH
 #  sudo docker cp tmp$ARG2:/usr/lib/debug/lib/x86_64-linux-gnu/ld-$GLIBC_RELEASE_VERSION.so ".debug/ld-$GLIBC_RELEASE_VERSION.so"
   sudo docker rm tmp$ARG2
   patchelf --set-interpreter `pwd`/ld-$GLIBC_RELEASE_VERSION.so $ARG1

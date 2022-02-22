@@ -13,16 +13,18 @@
 #### function ####
 function usage {
 cat >&2 <<EOS
-usage: $0 <elf-file> [ubuntu-version] [glibc-version] [options]
+usage: $0 <elf-file> [glibc-version] [options]
 or
-usage: $0 <elf-file> [ubuntu-version] --local <libc-file> [options]
+usage: $0 <elf-file> --local <libc-file> [options]
 [options]
 -h   | --help
   show help
 -m32 | --mode-32bit
   patch 32bit libc
--l   | --local
+-l   | --local <libc-file>
   patch local libc
+-v   | --version <ubuntu version>
+  specify the version of ubuntu manually
 EOS
 exit 1
 }
@@ -151,6 +153,8 @@ M32=
 LOCAL=
 ## local libc patch
 LOCAL_LIBC=
+## ubuntu version
+VERSION=
 # array of args
 args=()
 while [ "$#" != 0 ]; do
@@ -158,6 +162,7 @@ while [ "$#" != 0 ]; do
     -h | --help           ) usage;;
     -m32 | --mode-32bit   ) M32=1;;
     -l | --local          ) shift; LOCAL_LIBC=$1 && LOCAL=1;;
+    -v | --verison        ) shift; VERSION=$1;;
     -* | --*              ) error "$1 : invalid option" ;;
     *                     ) args+=("$1");; # add args to array
   esac

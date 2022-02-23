@@ -45,7 +45,7 @@ test_template "64bit glibc 2.31 local test" "./test_64bit_231_local"  "./libc_ch
 rm -f ./libc.so.6
 
 # 32bit glibc 2.31 test
-test_template "32bit glibc 2.31 test" "./test_32bit_231"  "./libc_changer ./test_32bit_231 20.04 2.31"
+test_template "32bit glibc 2.31 test" "./test_32bit_231"  "./libc_changer ./test_32bit_231 20.04 2.31 -m32"
 rm -f ./libc.so.6
 
 # 32bit glibc 2.31 local test

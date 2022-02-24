@@ -14,8 +14,10 @@ function check {
   # $1=command, $2=expected_output
   if [ "$1" = "$2" ]; then
     info "Passeed !"
+    result+=("passed")
   else
     error "Failed !"
+    result+=("failed")
   fi
 }
 
@@ -25,11 +27,13 @@ function test_template {
   gcc test.c -o $2
   bash $3
   check `./$2` "works"
+  let ++count
 }
 
 # init
 cp ../libc_changer .
-
+count=0
+result=()
 # test template
 # 1. show test name
 # 2. patch
@@ -53,8 +57,16 @@ test_template "32bit glibc 2.31 local test" "./test_32bit_231_local"  "./libc_ch
 rm -f ./libc.so.6
 
 # clear
+echo info "cleaning..."
 rm -f ./test_*
 rm -f ./libc.so.6
 rm -rf ./.debug
 rm -f ./ld-*
 rm -f ./libc_changer
+# result
+info "result"
+echo "===== result ====="
+for ((i=1; i<=count; i++))
+do
+  echo "$i: ${result[${i}-1]}"
+done

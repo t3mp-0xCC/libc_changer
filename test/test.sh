@@ -22,13 +22,17 @@ function check {
 }
 
 function test_template {
-  # test_template <info msg> <bin name> <cmd> <glibc version>
+  # test_template <1: info msg> <2: bin name> <3: cmd> <4: glibc version> <5: 32bit flag>
   info $1
   test_name+=($1)
   # make test directory
   mkdir $1
   cd $1
-  gcc ../test.c -o $2
+  if [ "$5" = "32bit" ]; then
+    gcc ../test.c -o $2 -m32
+  else
+    gcc ../test.c -o $2
+  fi
   ln -s ../libc_changer .
   cp ../libc-2.27_* .
   bash $3
@@ -68,11 +72,11 @@ test_template "test_64bit_glibc_2.27_local" "./test_64bit_227_local"  "./libc_ch
 rm -f ./libc.so.6
 
 # 32bit glibc 2.27 test
-test_template "test_32bit_glibc_2.27" "./test_32bit_227"  "./libc_changer ./test_32bit_227 18.04 2.27 -m32" "2.27"
+test_template "test_32bit_glibc_2.27" "./test_32bit_227"  "./libc_changer ./test_32bit_227 18.04 2.27 -m32" "2.27" "32bit"
 rm -f ./libc.so.6
 
 # 32bit glibc 2.27 local test
-test_template "test_32bit_glibc_2.27_local" "./test_32bit_227_local"  "./libc_changer ./test_32bit_227_local 18.04 --local ./libc-2.27_32.so" "2.27"
+test_template "test_32bit_glibc_2.27_local" "./test_32bit_227_local"  "./libc_changer ./test_32bit_227_local 18.04 --local ./libc-2.27_32.so" "2.27" "32bit"
 rm -f ./libc.so.6
 
 # clear

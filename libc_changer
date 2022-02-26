@@ -38,7 +38,7 @@ function info {
 }
 
 function argc_check {
-  if [ "${#args[*]}" -lt $1 ]; then 
+  if [ "${#args[*]}" -lt $1 ]; then
   error "missing arguments"
   fi
 }

@@ -81,7 +81,7 @@ rm -f ./libc.so.6
 
 # clear
 if [ "$clean" =  "1" ]; then
-  echo info "cleaning..."
+  info "cleaning..."
   ./clean.sh
 fi
 

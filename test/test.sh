@@ -81,5 +81,5 @@ echo "===== result ====="
 for ((i=1; i<=count; i++))
 do
   echo "${test_name[${i}-1]}"
-  echo "$i: ${result[${i}-1]}"
+  echo "${result[${i}-1]}"
 done

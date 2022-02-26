@@ -24,6 +24,7 @@ function check {
 function test_template {
   # test_template <info msg> <bin name> <cmd>
   info $1
+  test_name+=($1)
   gcc test.c -o $2
   bash $3
   check `./$2` "works"
@@ -32,8 +33,20 @@ function test_template {
 
 # init
 cp ../libc_changer .
+## test counter
 count=0
+## array of result
 result=()
+## array of test name
+test_name=()
+## clean or not flag
+clean=1
+
+if [ "$1" = "-nc" ]; then
+  clean=0
+  info "cleaning: disable"
+fi
+
 # test template
 # 1. show test name
 # 2. patch
@@ -57,16 +70,16 @@ test_template "32bit_glibc_2.31_local_test" "./test_32bit_231_local"  "./libc_ch
 rm -f ./libc.so.6
 
 # clear
-echo info "cleaning..."
-rm -f ./test_*
-rm -f ./libc.so.6
-rm -rf ./.debug
-rm -f ./ld-*
-rm -f ./libc_changer
+if [ "$clean" =  "1" ]; then
+  echo info "cleaning..."
+  ./clean.sh
+fi
+
 # result
 info "result"
 echo "===== result ====="
 for ((i=1; i<=count; i++))
 do
+  echo "${test_name[${i}-1]}"
   echo "$i: ${result[${i}-1]}"
 done

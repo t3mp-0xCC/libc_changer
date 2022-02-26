@@ -1,5 +1,5 @@
 #!/bin/sh
-rm -f ./test_*
+rm -rf ./test_*
 rm -f ./libc.so.6
 rm -rf ./.debug
 rm -f ./ld-*

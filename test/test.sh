@@ -30,8 +30,7 @@ function test_template {
   cd $1
   gcc ../test.c -o $2
   ln -s ../libc_changer .
-  ln -s ../libc-2.31_64.so
-  ln -s ../libc-2.31_32.so
+  cp ../libc-2.27_* .
   bash $3
   check `./$2` "$4"
   let ++count
@@ -60,20 +59,20 @@ fi
 # 3. check if the program works
 # 4. check linked glibc version
 
-# 64bit glibc 2.31 test
-test_template "test_64bit_glibc_2.31" "./test_64bit_231"  "./libc_changer ./test_64bit_231 20.04 2.31" "2.31"
+# 64bit glibc 2.27 test
+test_template "test_64bit_glibc_2.27" "./test_64bit_227"  "./libc_changer ./test_64bit_227 18.04 2.27" "2.27"
 rm -f ./libc.so.6
 
-# 64bit glibc 2.31 local test
-test_template "test_64bit_glibc_2.31_local" "./test_64bit_231_local"  "./libc_changer ./test_64bit_231_local 20.04 --local ./libc-2.31_64.so" "2.31"
+# 64bit glibc 2.27 local test
+test_template "test_64bit_glibc_2.27_local" "./test_64bit_227_local"  "./libc_changer ./test_64bit_227_local 18.04 --local ./libc-2.27_64.so" "2.27"
 rm -f ./libc.so.6
 
-# 32bit glibc 2.31 test
-test_template "test_32bit_glibc_2.31" "./test_32bit_231"  "./libc_changer ./test_32bit_231 20.04 2.31 -m32" "2.31"
+# 32bit glibc 2.27 test
+test_template "test_32bit_glibc_2.27" "./test_32bit_227"  "./libc_changer ./test_32bit_227 18.04 2.27 -m32" "2.27"
 rm -f ./libc.so.6
 
-# 32bit glibc 2.31 local test
-test_template "test_32bit_glibc_2.31_local" "./test_32bit_231_local"  "./libc_changer ./test_32bit_231 20.04 --local ./libc-2.31_32.so" "2.31"
+# 32bit glibc 2.27 local test
+test_template "test_32bit_glibc_2.27_local" "./test_32bit_227_local"  "./libc_changer ./test_32bit_227_local 18.04 --local ./libc-2.27_32.so" "2.27"
 rm -f ./libc.so.6
 
 # clear

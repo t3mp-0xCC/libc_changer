@@ -1,8 +1,8 @@
 #include <stdio.h>
-#include <unistd.h>
+#include <stdlib.h>
+#include <gnu/libc-version.h>
 
-int main(void) {
-  printf("works\n");
-
-  return 0;
+// show linked glibc version
+int main(int argc, char *argv[]) {
+  printf("%s\n", gnu_get_libc_version());
 }

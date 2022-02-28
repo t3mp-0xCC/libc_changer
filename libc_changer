@@ -130,7 +130,11 @@ function patch_local {
   fi
   sudo docker pull ubuntu:$UBUNTU_VERSION
   if [ "$M32" = 1 ]; then
+<<<<<<< HEAD
     sudo docker run --name tmp$UBUNTU_VERSION -i -t ubuntu:$UBUNTU_VERSION bash -c "apt update && apt -y --allow-downgrades install libc6-i386=$GLIBC_VERSION libc6-dbg-i386-cross='$GLIBC_VERSION'cross1"
+=======
+    sudo docker run --name tmp$ARG2 -i -t ubuntu:$ARG2 bash -c "apt update && apt -y --allow-downgrades install libc6-i386=$GLIBC_VERSION"
+>>>>>>> 62acb9fcb37539ad2e4e5b5809984287326929cc
   else
     sudo docker run --name tmp$UBUNTU_VERSION -i -t ubuntu:$UBUNTU_VERSION bash -c "apt update && apt -y --allow-downgrades install libc6=$GLIBC_VERSION libc-dev-bin=$GLIBC_VERSION libc6-dev=$GLIBC_VERSION"
   fi

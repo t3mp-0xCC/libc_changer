@@ -22,7 +22,7 @@ usage: $0 <elf-file> --local <libc-file> [options]
   patch 32bit libc
 -l   | --local <libc-file>
   patch local libc
--v   | --version <ubuntu version>
+-u   | --ubuntu <ubuntu version>
   specify the version of ubuntu manually
 EOS
 exit 1
@@ -171,7 +171,7 @@ while [ "$#" != 0 ]; do
     -h | --help           ) usage;;
     -m32 | --mode-32bit   ) M32=1;;
     -l | --local          ) shift; LOCAL_LIBC=$1 && LOCAL=1;;
-    -v | --verison        ) shift; UBUNTU_VERSION=$1;;
+    -u | --ubuntu        ) shift; UBUNTU_VERSION=$1;;
     -* | --*              ) error "$1 : invalid option" ;;
     *                     ) args+=("$1");; # add args to array
   esac

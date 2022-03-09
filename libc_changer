@@ -125,14 +125,14 @@ function patch_local {
   if [ "$M32" = 1 ]; then
     sudo docker run --name tmp$ARG2 -i -t ubuntu:$ARG2 bash -c "apt update && apt -y --allow-downgrades install libc6-i386=$GLIBC_VERSION"
   else
-    sudo docker run --name tmp$ARG2 -i -t ubuntu:$ARG2 bash -c "apt update && apt -y --allow-downgrades install libc6=$GLIBC_VERSION libc-dev-bin=$GLIBC_VERSION libc6-dev=$GLIBC_VERSION"
+    sudo docker run --name tmp$ARG2 -i -t ubuntu:$ARG2 bash -c "apt update && apt -y --allow-downgrades install libc6=$GLIBC_VERSION libc-dev-bin=$GLIBC_VERSION libc6-dev=$GLIBC_VERSION libc6-dbg=$GLIBC_VERSION"
   fi
   cp $LOCAL_LIBC "`pwd`/libc.so.6"
   sudo docker cp tmp$ARG2:$LIB_PATH/ld-$GLIBC_RELEASE_VERSION.so .
   mkdir -p ".debug"
-#  sudo docker cp tmp$ARG2:/usr/lib/debug/lib/x86_64-linux-gnu/libc-$GLIBC_RELEASE_VERSION.so ".debug/libc.so.6"
+  sudo docker cp tmp$ARG2:/usr/lib/debug/lib/x86_64-linux-gnu/libc-$GLIBC_RELEASE_VERSION.so ".debug/libc.so.6"
   mkdir -p .debug/$LIB_PATH
-#  sudo docker cp tmp$ARG2:/usr/lib/debug/lib/x86_64-linux-gnu/ld-$GLIBC_RELEASE_VERSION.so ".debug/ld-$GLIBC_RELEASE_VERSION.so"
+  sudo docker cp tmp$ARG2:/usr/lib/debug/lib/x86_64-linux-gnu/ld-$GLIBC_RELEASE_VERSION.so ".debug/ld-$GLIBC_RELEASE_VERSION.so"
   sudo docker rm tmp$ARG2
   patchelf --set-interpreter `pwd`/ld-$GLIBC_RELEASE_VERSION.so $ARG1
   patchelf --replace-needed  libc.so.6 "`pwd`/libc.so.6" $ARG1

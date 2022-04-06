@@ -43,6 +43,14 @@ function argc_check {
   fi
 }
 
+function check_patch {
+  # check_patch <bin>
+  if [ -z "`ldd $1 | grep `pwd` `" ]; then
+    error "Patch failed !"
+  fi
+  info "Done !"
+}
+
 function get_libc_version {
   # get libc version from .rodata section
   # only support Ubuntu glibc
@@ -100,7 +108,7 @@ function patch {
   patchelf --set-interpreter `pwd`/ld-$ARG3.so $ARG1
   patchelf --replace-needed  libc.so.6 "`pwd`/libc.so.6" $ARG1
   patchelf  --set-rpath `pwd` $ARG1
-  info "Done !"
+  check_patch $ARG1
 }
 
 function patch_local {
@@ -137,7 +145,7 @@ function patch_local {
   patchelf --set-interpreter `pwd`/ld-$GLIBC_RELEASE_VERSION.so $ARG1
   patchelf --replace-needed  libc.so.6 "`pwd`/libc.so.6" $ARG1
   patchelf  --set-rpath `pwd` $ARG1
-  info "Done !"
+  check_patch $ARG1
 }
 
 #### init ####

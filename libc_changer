@@ -7,7 +7,6 @@
 
 #### TODO ####
 # backup original binary
-# ubuntu version guessing
 
 #### function ####
 function usage {
@@ -77,10 +76,59 @@ function check_libc_bit_version {
   fi
 }
 
-function guessing_version {
-  if [ -z "$UBUNTU_VERSION" ]; then
-    ;
-  fi
+function guessing_ubuntu_version {
+  # guessing Ubuntu version from glibc version
+  # arg1 = glibc version
+
+  ## making Ubuntu version array
+  ubuntu_min_version=16.04
+  ubuntu_max_version=20.04
+  ubuntu_version=$ubuntu_min_version
+  ubuntu_array=()
+  ubuntu_array[0]=16.04
+  ubuntu_array[1]=16.10
+  ubuntu_array[2]=17.04
+  ubuntu_array[3]=17.10
+  ubuntu_array[4]=18.04
+  ubuntu_array[5]=18.10
+  ubuntu_array[6]=19.04
+  ubuntu_array[7]=19.10
+  ubuntu_array[8]=20.04
+  # unimplemented
+  #i=0
+  #while [ `echo "$ubuntu_max_version > $ubuntu_version" | bc` -eq 1 ]
+  #do
+  #  ubuntu_array[$i]=$ubuntu_version
+  #  if [ `echo "$ubuntu_version % 0.10" | bc` -eq 0 ]; then
+  #    $ubuntu_version=`echo "scale=2; $ubuntu_version + 0.94" | bc`
+  #  else
+  #    $ubuntu_version=`echo "scale=2; $ubuntu_version + 0.06" | bc`
+  #  fi
+  #  i=`expr $i + 1`
+  #done
+
+  ## making glibc version array
+  libc_min_version=2.23
+  libc_max_version=2.31
+  libc_version=$libc_min_version
+  libc_array=()
+  i=0
+  while [ `echo "$libc_max_version > $libc_version" | bc` -eq 1 ]
+  do
+    libc_array[$i]=$libc_version
+    libc_version=`echo "scale=2; $libc_version + 0.01" | bc`
+    i=`expr $i + 1`
+  done
+
+  ## searching index of glibc version array
+  i=0
+  while [ `echo "$1 == ${libc_array[$i]}" | bc` -ne 1 ]
+  do
+    i=`expr $i + 1`
+  done
+
+  ## return matching Ubuntu version
+  echo ${ubuntu_array[$i]}
 }
 
 function patch {
@@ -95,8 +143,17 @@ function patch {
     LIB_PATH="/lib/x86_64-linux-gnu"
     DEBUG_PATH="/usr/lib/debug/lib/x86_64-linux-gnu"
   fi
+
+  if [ -z "${UBUNTU_VERSION}" ]; then
+    UBUNTU_VERSION=`guessing_ubuntu_version $ARG2`
+    if [ -z $UBUNTU_VERSION ]; then
+      error "Failed to guessing Ubuntu version"
+      info "Trying --ubuntu option might work (or not supported)"
+    fi
+    info "Using Ubuntu $UBUNTU_VERSION container"
+  fi
   sudo docker pull ubuntu:$UBUNTU_VERSION
-  sudo docker run --name tmp$UBUNTU_VERSION -i -t ubuntu:$VERSION bash -c "apt update && apt -y install $PACKAGES"
+  sudo docker run --name tmp$UBUNTU_VERSION -i -t ubuntu:$UBUNTU_VERSION bash -c "apt update && apt -y install $PACKAGES"
   sudo docker cp tmp$UBUNTU_VERSION:$LIB_PATH/ld-$ARG2.so .
   sudo docker cp tmp$UBUNTU_VERSION:$LIB_PATH/libc-$ARG2.so "libc.so.6"
   mkdir -p ".debug"
@@ -127,6 +184,15 @@ function patch_local {
     PACKAGES="libc6-dbg"
     LIB_PATH="/lib/x86_64-linux-gnu"
     DEBUG_PATH="/usr/lib/debug/lib/x86_64-linux-gnu"
+  fi
+
+  if [ -z "${UBUNTU_VERSION}" ]; then
+    UBUNTU_VERSION=`guessing_ubuntu_version $ARG2`
+    if [ -z $UBUNTU_VERSION ]; then
+      error "Failed to guessing Ubuntu version"
+      info "Trying --ubuntu option might work (or not supported)"
+    fi
+    info "Using Ubuntu $UBUNTU_VERSION container"
   fi
   sudo docker pull ubuntu:$UBUNTU_VERSION
   if [ "$M32" = 1 ]; then
@@ -186,10 +252,10 @@ ARG3="${args[2]}"
 #### main part ####
 if [ "$LOCAL" = 1 ]; then
   # patch local libc
-  argc_check 2
+  argc_check 1
   patch_local
 else
-  argc_check 3
+  argc_check 2
   patch
 fi
 

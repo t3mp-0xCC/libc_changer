@@ -43,6 +43,14 @@ function argc_check {
   fi
 }
 
+function check_patch {
+  # check_patch <bin>
+  if [ -z "`ldd $1 | grep `pwd` `" ]; then
+    error "Patch failed !"
+  fi
+  info "Done !"
+}
+
 function get_libc_version {
   # get libc version from .rodata section
   # only support Ubuntu glibc
@@ -164,7 +172,7 @@ function patch {
   patchelf --set-interpreter `pwd`/ld-$ARG2.so $ARG1
   patchelf --replace-needed  libc.so.6 "`pwd`/libc.so.6" $ARG1
   patchelf  --set-rpath `pwd` $ARG1
-  info "Done !"
+  check_patch $ARG1
 }
 
 function patch_local {
@@ -199,7 +207,7 @@ function patch_local {
     sudo docker run --name tmp$UBUNTU_VERSION -i -t ubuntu:$UBUNTU_VERSION bash -c "apt update && apt -y --allow-downgrades install libc6-i386=$GLIBC_VERSION libc6-dbg-i386-cross='$GLIBC_VERSION'cross1"
     sudo docker run --name tmp$ARG2 -i -t ubuntu:$ARG2 bash -c "apt update && apt -y --allow-downgrades install libc6-i386=$GLIBC_VERSION"
   else
-    sudo docker run --name tmp$UBUNTU_VERSION -i -t ubuntu:$UBUNTU_VERSION bash -c "apt update && apt -y --allow-downgrades install libc6=$GLIBC_VERSION libc-dev-bin=$GLIBC_VERSION libc6-dev=$GLIBC_VERSION"
+    sudo docker run --name tmp$UBUNTU_VERSION -i -t ubuntu:$UBUNTU_VERSION bash -c "apt update && apt -y --allow-downgrades install libc6=$GLIBC_VERSION libc-dev-bin=$GLIBC_VERSION libc6-dev=$GLIBC_VERSION libc6-dbg=$GLIBC_VERSION"
   fi
   cp $LOCAL_LIBC "`pwd`/libc.so.6"
   sudo docker cp tmp$UBUNTU_VERSION:$LIB_PATH/ld-$GLIBC_RELEASE_VERSION.so .
@@ -211,7 +219,7 @@ function patch_local {
   patchelf --set-interpreter `pwd`/ld-$GLIBC_RELEASE_VERSION.so $ARG1
   patchelf --replace-needed  libc.so.6 "`pwd`/libc.so.6" $ARG1
   patchelf  --set-rpath `pwd` $ARG1
-  info "Done !"
+  check_patch $ARG1
 }
 
 #### init ####

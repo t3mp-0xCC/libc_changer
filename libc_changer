@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 #
 # for ctf
 # 配られたlibcが手元に無くても無理やりバイナリを動かすことが出来るようにパッチを行う
@@ -121,7 +121,7 @@ function guessing_ubuntu_version {
   libc_version=$libc_min_version
   libc_array=()
   i=0
-  while [ `echo "$libc_max_version > $libc_version" | bc` -eq 1 ]
+  while [ `echo "$libc_max_version < $libc_version" | bc` -ne 1 ]
   do
     libc_array[$i]=$libc_version
     libc_version=`echo "scale=2; $libc_version + 0.01" | bc`

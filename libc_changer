@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 #
 # for ctf
 # 配られたlibcが手元に無くても無理やりバイナリを動かすことが出来るようにパッチを行う
@@ -45,7 +45,7 @@ function argc_check {
 
 function check_patch {
   # check_patch <bin>
-  if [ -z "`ldd $1 | grep `pwd` `" ]; then
+  if [ -z "`ldd $1 | grep $(pwd) `" ]; then
     error "Patch failed !"
   fi
   info "Done !"
@@ -91,7 +91,7 @@ function guessing_ubuntu_version {
   ## making Ubuntu version array
   ubuntu_min_version=16.04
   ubuntu_max_version=20.04
-  ubuntu_version=$ubuntu_min_version
+  ubuntu_version=
   ubuntu_array=()
   ubuntu_array[0]=16.04
   ubuntu_array[1]=16.10
@@ -195,7 +195,7 @@ function patch_local {
   fi
 
   if [ -z "${UBUNTU_VERSION}" ]; then
-    UBUNTU_VERSION=`guessing_ubuntu_version $ARG2`
+    UBUNTU_VERSION=`guessing_ubuntu_version $GLIBC_RELEASE_VERSION`
     if [ -z $UBUNTU_VERSION ]; then
       error "Failed to guessing Ubuntu version"
       info "Trying --ubuntu option might work (or not supported)"

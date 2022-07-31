@@ -29,9 +29,19 @@ function test_template {
   mkdir $1
   cd $1
   if [ "$5" = "32bit" ]; then
-    gcc ../test.c -o $2 -m32
+    sudo docker pull ubuntu:20.04
+    sudo docker run --name tmp20.04 -i -t ubuntu:20.04 bash -c "apt update && apt -y install gcc"
+    sudo docker cp ../test.c tmp20.04:/tmp/test.c
+    sudo docker exec -i -t tmp20.04 bash -c gcc /tmp/test.c -o /tmp/$2 -m32
+    sudo docker cp tmp20.04:/tmp/$2 ./$2
+    sudo docker rm tmp20.04
   else
-    gcc ../test.c -o $2
+    sudo docker pull ubuntu:20.04
+    sudo docker run --name tmp20.04 -i -t ubuntu:20.04 bash -c "apt update && apt -y install gcc"
+    sudo docker cp ../test.c tmp20.04:/tmp/test.c
+    sudo docker exec -i -t tmp20.04 bash -c gcc /tmp/test.c -o /tmp/$2
+    sudo docker cp tmp20.04:/tmp/$2 ./$2
+    sudo docker rm tmp20.04
   fi
   ln -s ../libc_changer .
   cp ../libc-2.27_* .
@@ -64,19 +74,19 @@ fi
 # 4. check linked glibc version
 
 # 64bit glibc 2.27 test
-test_template "test_64bit_glibc_2.27" "./test_64bit_227"  "./libc_changer ./test_64bit_227 18.04 2.27" "2.27"
+test_template "test_64bit_glibc_2.27" "./test_64bit_227"  "./libc_changer ./test_64bit_227 2.27" "2.27"
 rm -f ./libc.so.6
 
 # 64bit glibc 2.27 local test
-test_template "test_64bit_glibc_2.27_local" "./test_64bit_227_local"  "./libc_changer ./test_64bit_227_local 18.04 --local ./libc-2.27_64.so" "2.27"
+test_template "test_64bit_glibc_2.27_local" "./test_64bit_227_local"  "./libc_changer ./test_64bit_227_local --local ./libc-2.27_64.so" "2.27"
 rm -f ./libc.so.6
 
 # 32bit glibc 2.27 test
-test_template "test_32bit_glibc_2.27" "./test_32bit_227"  "./libc_changer ./test_32bit_227 18.04 2.27 -m32" "2.27" "32bit"
+test_template "test_32bit_glibc_2.27" "./test_32bit_227"  "./libc_changer ./test_32bit_227 2.27 -m32" "2.27" "32bit"
 rm -f ./libc.so.6
 
 # 32bit glibc 2.27 local test
-test_template "test_32bit_glibc_2.27_local" "./test_32bit_227_local"  "./libc_changer ./test_32bit_227_local 18.04 --local ./libc-2.27_32.so" "2.27" "32bit"
+test_template "test_32bit_glibc_2.27_local" "./test_32bit_227_local"  "./libc_changer ./test_32bit_227_local --local ./libc-2.27_32.so" "2.27" "32bit"
 rm -f ./libc.so.6
 
 # clear

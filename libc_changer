@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 #
 # for ctf
 # 配られたlibcが手元に無くても無理やりバイナリを動かすことが出来るようにパッチを行う
@@ -102,6 +102,10 @@ function guessing_ubuntu_version {
   ubuntu_array[6]=19.04
   ubuntu_array[7]=19.10
   ubuntu_array[8]=20.04
+  ubuntu_array[9]=20.10
+  ubuntu_array[10]=21.04
+  ubuntu_array[11]=21.10
+  ubuntu_array[12]=22.04
   # unimplemented
   #i=0
   #while [ `echo "$ubuntu_max_version > $ubuntu_version" | bc` -eq 1 ]
@@ -117,7 +121,7 @@ function guessing_ubuntu_version {
 
   ## making glibc version array
   libc_min_version=2.23
-  libc_max_version=2.31
+  libc_max_version=2.35
   libc_version=$libc_min_version
   libc_array=()
   i=0
@@ -165,9 +169,20 @@ function patch {
   sudo docker cp tmp$UBUNTU_VERSION:$LIB_PATH/ld-$ARG2.so .
   sudo docker cp tmp$UBUNTU_VERSION:$LIB_PATH/libc-$ARG2.so "libc.so.6"
   mkdir -p ".debug"
-  sudo docker cp tmp$UBUNTU_VERSION:$DEBUG_PATH/libc-$ARG2.so ".debug/libc.so.6"
-  mkdir -p .debug/$LIB_PATH
-  sudo docker cp tmp$UBUNTU_VERSION:$DEBUG_PATH/ld-$ARG2.so ".debug/ld-$ARG2.so"
+  # debug symbol check
+  sudo docker cp tmp$UBUNTU_VERSION:$DEBUG_PATH/libc-$ARG2.so ".debug/libc.so.6" 1>&/dev/null
+  test
+  if [ $? -eq 1 ]; then
+    DEBUG_PATH="/usr/lib/debug/.build-id"
+    sudo docker cp tmp$UBUNTU_VERSION:$DEBUG_PATH ./.debug/
+    sudo chown `id -u`:`id -g` ./libc.so.6
+    objcopy --remove-section=.gnu_debuglink ./libc.so.6
+    objcopy --add-gnu-debuglink="`pwd`/.debug" ./libc.so.6
+  else
+    sudo docker cp tmp$UBUNTU_VERSION:$DEBUG_PATH/libc-$ARG2.so ".debug/libc.so.6"
+    mkdir -p .debug/$LIB_PATH
+    sudo docker cp tmp$UBUNTU_VERSION:$DEBUG_PATH/ld-$ARG2.so ".debug/ld-$ARG2.so"
+  fi
   sudo docker rm tmp$UBUNTU_VERSION
   patchelf --set-interpreter `pwd`/ld-$ARG2.so $ARG1
   patchelf --replace-needed  libc.so.6 "`pwd`/libc.so.6" $ARG1

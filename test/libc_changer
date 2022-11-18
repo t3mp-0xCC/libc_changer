@@ -1,0 +1,269 @@
+#!/bin/bash -x
+#
+# for ctf
+# 配られたlibcが手元に無くても無理やりバイナリを動かすことが出来るようにパッチを行う
+#
+# forked from https://gist.github.com/tachibana51/a89a748eaebc8b080eb0b46c35233e0d/raw/381232841e9d625ad759030d1ebe8fdf05775707/libc%2520changer
+
+#### TODO ####
+# backup original binary
+
+#### function ####
+function usage {
+cat >&2 <<EOS
+usage: $0 <elf-file> [glibc-version] [options]
+or
+usage: $0 <elf-file> --local <libc-file> [options]
+[options]
+-h   | --help
+  show help
+-m32 | --mode-32bit
+  patch 32bit libc
+-l   | --local <libc-file>
+  patch local libc
+-u   | --ubuntu <ubuntu version>
+  specify the version of ubuntu manually
+EOS
+exit 1
+}
+
+function error {
+  echo -e "\e[31m[Err]\e[m $1" >&2
+  usage
+  exit 1
+}
+
+function info {
+  echo -e "\e[34m[i]\e[m $1"
+}
+
+function argc_check {
+  if [ "${#args[*]}" -lt $1 ]; then
+  error "missing arguments"
+  fi
+}
+
+function check_patch {
+  # check_patch <bin>
+  if [ -z "`ldd $1 | grep $(pwd) `" ]; then
+    error "Patch failed !"
+  fi
+  info "Done !"
+}
+
+function get_libc_version {
+  # get libc version from .rodata section
+  # only support Ubuntu glibc
+  if [ -z "`strings $1 | grep 'GNU C Library'`" ]; then
+    error "invalid libc-file"
+  fi
+  glibc_version=`strings $1 | grep "GNU C Library" | sed -e "s/GNU C Library (Ubuntu GLIBC //g" | cut -d ")" -f 1`
+  if [ -z "$glibc_version" ]; then
+    error "cannot detect glibc version"
+  fi
+  echo $glibc_version
+}
+
+function get_libc_release_version {
+  if [ -z "`strings $1 | grep 'GNU C Library'`" ]; then
+    error "invalid libc-file"
+  fi
+  glibc_release_version=`strings $1 | grep "GNU C Library" | sed -e "s/GNU C Library (Ubuntu GLIBC //g" | cut -d ")" -f 1 | cut -d "-" -f 1`
+  if [ -z "$glibc_release_version" ]; then
+    error "cannot detect glibc release version"
+  fi
+  echo $glibc_release_version
+}
+
+function check_libc_bit_version {
+  # check libc is 32bit or not
+  if [ -n "$(file $1 | grep "32-bit")" ]; then
+    M32=1
+  else
+    M32=
+  fi
+}
+
+function guessing_ubuntu_version {
+  # guessing Ubuntu version from glibc version
+  # arg1 = glibc version
+
+  ## making Ubuntu version array
+  ubuntu_min_version=16.04
+  ubuntu_max_version=20.04
+  ubuntu_version=
+  ubuntu_array=()
+  ubuntu_array[0]=16.04
+  ubuntu_array[1]=16.10
+  ubuntu_array[2]=17.04
+  ubuntu_array[3]=17.10
+  ubuntu_array[4]=18.04
+  ubuntu_array[5]=18.10
+  ubuntu_array[6]=19.04
+  ubuntu_array[7]=19.10
+  ubuntu_array[8]=20.04
+  # unimplemented
+  #i=0
+  #while [ `echo "$ubuntu_max_version > $ubuntu_version" | bc` -eq 1 ]
+  #do
+  #  ubuntu_array[$i]=$ubuntu_version
+  #  if [ `echo "$ubuntu_version % 0.10" | bc` -eq 0 ]; then
+  #    $ubuntu_version=`echo "scale=2; $ubuntu_version + 0.94" | bc`
+  #  else
+  #    $ubuntu_version=`echo "scale=2; $ubuntu_version + 0.06" | bc`
+  #  fi
+  #  i=`expr $i + 1`
+  #done
+
+  ## making glibc version array
+  libc_min_version=2.23
+  libc_max_version=2.31
+  libc_version=$libc_min_version
+  libc_array=()
+  i=0
+  while [ `echo "$libc_max_version < $libc_version" | bc` -ne 1 ]
+  do
+    libc_array[$i]=$libc_version
+    libc_version=`echo "scale=2; $libc_version + 0.01" | bc`
+    i=`expr $i + 1`
+  done
+
+  ## searching index of glibc version array
+  i=0
+  while [ `echo "$1 == ${libc_array[$i]}" | bc` -ne 1 ]
+  do
+    i=`expr $i + 1`
+  done
+
+  ## return matching Ubuntu version
+  echo ${ubuntu_array[$i]}
+}
+
+function patch {
+  if [ "$M32" = 1 ]; then
+    info "32bit patch mode"
+    PACKAGES="libc6-i386 libc6-dbg-i386-cross"
+    LIB_PATH="/lib32"
+    DEBUG_PATH="/usr/i686-linux-gnu/lib/debug/lib/i386-linux-gnu"
+  else
+    info "64bit patch mode"
+    PACKAGES="libc6-dbg"
+    LIB_PATH="/lib/x86_64-linux-gnu"
+    DEBUG_PATH="/usr/lib/debug/lib/x86_64-linux-gnu"
+  fi
+
+  if [ -z "${UBUNTU_VERSION}" ]; then
+    UBUNTU_VERSION=`guessing_ubuntu_version $ARG2`
+    if [ -z $UBUNTU_VERSION ]; then
+      error "Failed to guessing Ubuntu version"
+      info "Trying --ubuntu option might work (or not supported)"
+    fi
+    info "Using Ubuntu $UBUNTU_VERSION container"
+  fi
+  sudo docker pull ubuntu:$UBUNTU_VERSION
+  sudo docker run --name tmp$UBUNTU_VERSION -i -t ubuntu:$UBUNTU_VERSION bash -c "apt update && apt -y install $PACKAGES"
+  sudo docker cp tmp$UBUNTU_VERSION:$LIB_PATH/ld-$ARG2.so .
+  sudo docker cp tmp$UBUNTU_VERSION:$LIB_PATH/libc-$ARG2.so "libc.so.6"
+  mkdir -p ".debug"
+  sudo docker cp tmp$UBUNTU_VERSION:$DEBUG_PATH/libc-$ARG2.so ".debug/libc.so.6"
+  mkdir -p .debug/$LIB_PATH
+  sudo docker cp tmp$UBUNTU_VERSION:$DEBUG_PATH/ld-$ARG2.so ".debug/ld-$ARG2.so"
+  sudo docker rm tmp$UBUNTU_VERSION
+  patchelf --set-interpreter `pwd`/ld-$ARG2.so $ARG1
+  patchelf --replace-needed  libc.so.6 "`pwd`/libc.so.6" $ARG1
+  patchelf  --set-rpath `pwd` $ARG1
+  check_patch $ARG1
+}
+
+function patch_local {
+  info "local libc patch"
+  GLIBC_VERSION=`get_libc_version $LOCAL_LIBC`
+  GLIBC_RELEASE_VERSION=`get_libc_release_version $LOCAL_LIBC`
+  info "glibc version detected"
+  info $GLIBC_VERSION
+  check_libc_bit_version $LOCAL_LIBC
+  if [ "$M32" = 1 ]; then
+    info "32bit patch mode"
+    PACKAGES="libc6-i386 libc6-dbg-i386-cross"
+    LIB_PATH="/lib32"
+    DEBUG_PATH="/usr/i686-linux-gnu/lib/debug/lib/i386-linux-gnu"
+  else
+    info "64bit patch mode"
+    PACKAGES="libc6-dbg"
+    LIB_PATH="/lib/x86_64-linux-gnu"
+    DEBUG_PATH="/usr/lib/debug/lib/x86_64-linux-gnu"
+  fi
+
+  if [ -z "${UBUNTU_VERSION}" ]; then
+    UBUNTU_VERSION=`guessing_ubuntu_version $GLIBC_RELEASE_VERSION`
+    if [ -z $UBUNTU_VERSION ]; then
+      error "Failed to guessing Ubuntu version"
+      info "Trying --ubuntu option might work (or not supported)"
+    fi
+    info "Using Ubuntu $UBUNTU_VERSION container"
+  fi
+  sudo docker pull ubuntu:$UBUNTU_VERSION
+  if [ "$M32" = 1 ]; then
+    sudo docker run --name tmp$UBUNTU_VERSION -i -t ubuntu:$UBUNTU_VERSION bash -c "apt update && apt -y --allow-downgrades install libc6-i386=$GLIBC_VERSION libc6-dbg-i386-cross='$GLIBC_VERSION'cross1"
+    sudo docker run --name tmp$ARG2 -i -t ubuntu:$ARG2 bash -c "apt update && apt -y --allow-downgrades install libc6-i386=$GLIBC_VERSION"
+  else
+    sudo docker run --name tmp$UBUNTU_VERSION -i -t ubuntu:$UBUNTU_VERSION bash -c "apt update && apt -y --allow-downgrades install libc6=$GLIBC_VERSION libc-dev-bin=$GLIBC_VERSION libc6-dev=$GLIBC_VERSION libc6-dbg=$GLIBC_VERSION"
+  fi
+  cp $LOCAL_LIBC "`pwd`/libc.so.6"
+  sudo docker cp tmp$UBUNTU_VERSION:$LIB_PATH/ld-$GLIBC_RELEASE_VERSION.so .
+  mkdir -p ".debug"
+  sudo docker cp tmp$ARG2:/usr/lib/debug/lib/x86_64-linux-gnu/libc-$GLIBC_RELEASE_VERSION.so ".debug/libc.so.6"
+  mkdir -p .debug/$LIB_PATH
+  sudo docker cp tmp$ARG2:/usr/lib/debug/lib/x86_64-linux-gnu/ld-$GLIBC_RELEASE_VERSION.so ".debug/ld-$GLIBC_RELEASE_VERSION.so"
+  sudo docker rm tmp$UBUNTU_VERSION
+  patchelf --set-interpreter `pwd`/ld-$GLIBC_RELEASE_VERSION.so $ARG1
+  patchelf --replace-needed  libc.so.6 "`pwd`/libc.so.6" $ARG1
+  patchelf  --set-rpath `pwd` $ARG1
+  check_patch $ARG1
+}
+
+#### init ####
+# args
+ARG1=
+ARG2=
+ARG3=
+## 32bit mode
+M32=
+## local libc mode
+LOCAL=
+## local libc patch
+LOCAL_LIBC=
+## ubuntu version
+UBUNTU_VERSION=
+# array of args
+args=()
+while [ "$#" != 0 ]; do
+  case $1 in
+    -h | --help           ) usage;;
+    -m32 | --mode-32bit   ) M32=1;;
+    -l | --local          ) shift; LOCAL_LIBC=$1 && LOCAL=1;;
+    -u | --ubuntu        ) shift; UBUNTU_VERSION=$1;;
+    -* | --*              ) error "$1 : invalid option" ;;
+    *                     ) args+=("$1");; # add args to array
+  esac
+  shift
+done
+
+if [ "$LOCAL" = 1 ] && [ -z "${LOCAL_LIBC}" ]; then
+  error "libc-file is not specified."
+fi
+
+ARG1="${args[0]}"
+ARG2="${args[1]}"
+ARG3="${args[2]}"
+
+#### main part ####
+if [ "$LOCAL" = 1 ]; then
+  # patch local libc
+  argc_check 1
+  patch_local
+else
+  argc_check 2
+  patch
+fi
+
